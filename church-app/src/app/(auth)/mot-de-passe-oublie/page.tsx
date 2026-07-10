@@ -32,7 +32,7 @@ export default function MotDePasseOubliePage() {
     setIsLoading(false)
 
     if (error) {
-      setError("Une erreur est survenue, réessayez.")
+      setError(error.message)
       return
     }
 
