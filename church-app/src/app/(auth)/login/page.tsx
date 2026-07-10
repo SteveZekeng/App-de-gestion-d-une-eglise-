@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
+import BoutonGoogle from '@/components/ui/BoutonGoogle'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -83,6 +84,14 @@ export default function LoginPage() {
           Se connecter
         </Button>
       </form>
+
+      <div className="flex items-center gap-3 my-4">
+        <div className="flex-1 h-px bg-white/10" />
+        <span className="text-xs text-blue-200/40">ou</span>
+        <div className="flex-1 h-px bg-white/10" />
+      </div>
+
+      <BoutonGoogle />
 
       <p className="text-center text-sm text-blue-700/70 dark:text-blue-200/60 mt-6">
         Pas encore de compte ?{' '}
