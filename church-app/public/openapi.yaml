@@ -32,8 +32,8 @@ info:
 servers:
   - url: https://nmqctnkfqzqhdgaxneet.supabase.co/rest/v1
     description: Supabase REST (PostgREST) — tables de l'application
-  - url: http://localhost:3000/api
-    description: Routes serveur Next.js (dev local)
+  - url: /api
+    description: Routes serveur Next.js (relatif — fonctionne en local et en production)
 
 security:
   - apiKeyAuth: []
