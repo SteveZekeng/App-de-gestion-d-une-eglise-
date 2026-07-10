@@ -44,10 +44,11 @@ export default function ReinitialiserMotDePassePage() {
       if (data.session) setLienValide((v) => v ?? true)
     })
 
-    // Délai de sécurité : si après 3s rien n'est détecté, le lien est invalide
+    // Délai de sécurité : si après 8s rien n'est détecté, le lien est invalide
+    // (8s pour laisser le temps sur mobile en 3G/4G lente)
     const timeout = setTimeout(() => {
       setLienValide((v) => v ?? false)
-    }, 3000)
+    }, 8000)
 
     return () => {
       subscription.unsubscribe()
