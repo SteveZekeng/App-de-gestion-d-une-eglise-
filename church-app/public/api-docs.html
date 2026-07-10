@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Church App — API Docs</title>
+    <link rel="icon" href="/logoChurch.png" />
+    <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+    <style>
+      body { margin: 0; background: #fafafa; }
+      .topbar { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+    <script>
+      window.onload = () => {
+        window.ui = SwaggerUIBundle({
+          url: '/openapi.yaml',
+          dom_id: '#swagger-ui',
+          presets: [SwaggerUIBundle.presets.apis],
+          layout: 'BaseLayout',
+          deepLinking: true,
+        })
+      }
+    </script>
+  </body>
+</html>

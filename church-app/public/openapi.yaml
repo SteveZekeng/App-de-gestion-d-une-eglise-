@@ -1,0 +1,635 @@
+openapi: 3.0.3
+info:
+  title: Church App — API
+  version: "1.0.0"
+  description: >
+    Documentation des points d'accès backend de l'application Church App
+    (Centre International des Vainqueurs).
+
+
+    Le backend de ce projet est **Supabase** : il n'y a pas de serveur API
+    "maison" pour les données — le frontend appelle directement l'API REST
+    auto-générée par Supabase (PostgREST) au-dessus des tables Postgres,
+    protégées par des policies RLS. Cette spec documente ces tables comme des
+    endpoints, plus la (les) route(s) serveur Next.js propres au projet.
+
+
+    **Pour tester une table Supabase dans Swagger UI :**
+    1. Cliquez sur "Authorize".
+    2. Renseignez `apikey` avec la clé anon (`NEXT_PUBLIC_SUPABASE_ANON_KEY`
+       dans `.env.local`).
+    3. Renseignez `bearerAuth` avec un access token JWT d'un utilisateur
+       connecté (récupérable via `supabase.auth.getSession()` dans la console
+       du navigateur sur l'app, ou via Supabase Dashboard > Authentication).
+    4. Les policies RLS s'appliquent normalement : une requête échouera ou ne
+       renverra rien si le rôle du token ne le permet pas.
+
+
+    ⚠️ Doc vivante — à mettre à jour à chaque table/colonne/policy ajoutée ou
+    modifiée. Voir aussi [docs/BACKEND.md](./docs/BACKEND.md) pour le détail
+    des policies RLS, fonctions SQL et historique des correctifs.
+
+servers:
+  - url: https://nmqctnkfqzqhdgaxneet.supabase.co/rest/v1
+    description: Supabase REST (PostgREST) — tables de l'application
+  - url: http://localhost:3000/api
+    description: Routes serveur Next.js (dev local)
+
+security:
+  - apiKeyAuth: []
+    bearerAuth: []
+
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: apikey
+      description: Clé anon Supabase (NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Access token de l'utilisateur connecté (auth.uid())
+
+  parameters:
+    idFilter:
+      name: id
+      in: query
+      description: Filtre PostgREST, ex. `eq.<uuid>`
+      schema:
+        type: string
+      example: eq.123e4567-e89b-12d3-a456-426614174000
+    select:
+      name: select
+      in: query
+      description: Colonnes à renvoyer (PostgREST), ex. `*` ou `id,titre`
+      schema:
+        type: string
+        default: "*"
+    order:
+      name: order
+      in: query
+      description: Tri PostgREST, ex. `date_creation.desc`
+      schema:
+        type: string
+    prefer:
+      name: Prefer
+      in: header
+      description: >
+        `return=representation` pour récupérer la ligne créée/modifiée dans
+        la réponse d'un POST/PATCH (sinon PostgREST renvoie 201/204 sans corps).
+      schema:
+        type: string
+        example: return=representation
+
+  schemas:
+    Utilisateur:
+      type: object
+      properties:
+        id: { type: string, format: uuid, description: "= auth.uid()" }
+        nom: { type: string }
+        prenom: { type: string }
+        email: { type: string, format: email }
+        telephone: { type: string, nullable: true }
+        role: { type: string, enum: [fidele, pasteur, admin] }
+        est_actif: { type: boolean }
+        date_creation: { type: string, format: date-time }
+
+    Priere:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        titre: { type: string }
+        description: { type: string, nullable: true }
+        type: { type: string, enum: [live, rediffusion] }
+        url_video: { type: string, nullable: true }
+        date_debut: { type: string, format: date-time, nullable: true }
+        date_fin: { type: string, format: date-time, nullable: true }
+        statut: { type: string, enum: [planifie, en_cours, termine] }
+        createur_id: { type: string, format: uuid }
+        date_creation: { type: string, format: date-time }
+
+    Intention:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        sujet: { type: string }
+        description: { type: string, nullable: true }
+        statut: { type: string, enum: [en_attente, en_cours, traitee] }
+        est_privee: { type: boolean }
+        date_creation: { type: string, format: date-time }
+
+    ReponseIntention:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        intention_id: { type: string, format: uuid }
+        responsable_id: { type: string, format: uuid }
+        commentaire: { type: string }
+        date_reponse: { type: string, format: date-time }
+
+    Participation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        priere_id: { type: string, format: uuid }
+        date_participation: { type: string, format: date-time }
+        duree_visionnage_sec: { type: integer }
+        position_reprise_sec: { type: integer }
+
+    Notification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        titre: { type: string }
+        message: { type: string }
+        type: { type: string, enum: [info, live, intention, rappel] }
+        est_lue: { type: boolean }
+        date_envoi: { type: string, format: date-time }
+        date_lecture: { type: string, format: date-time, nullable: true }
+
+    PenseeDuJour:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        image_url: { type: string }
+        reference_biblique: { type: string, nullable: true }
+        createur_id: { type: string, format: uuid }
+        date_creation: { type: string, format: date-time }
+
+    VideoMotivation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        titre: { type: string }
+        description: { type: string, nullable: true }
+        url_video: { type: string, description: "lien YouTube ou URL Storage bucket videos" }
+        createur_id: { type: string, format: uuid }
+        date_creation: { type: string, format: date-time }
+
+    LiveCommentaire:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        priere_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        nom_auteur: { type: string }
+        prenom_auteur: { type: string }
+        contenu: { type: string }
+        date_creation: { type: string, format: date-time }
+
+    LiveLike:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        priere_id: { type: string, format: uuid }
+        user_id: { type: string, format: uuid }
+        date_creation: { type: string, format: date-time }
+
+    Erreur:
+      type: object
+      properties:
+        error: { type: string }
+
+paths:
+  /utilisateurs:
+    get:
+      tags: [utilisateurs]
+      summary: Lister les utilisateurs
+      description: >
+        RLS : un fidèle ne voit que sa propre ligne ; admin/pasteur voient tout
+        (`est_admin_ou_pasteur()`).
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - $ref: '#/components/parameters/order'
+        - $ref: '#/components/parameters/idFilter'
+      responses:
+        "200":
+          description: Liste des utilisateurs visibles selon RLS
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Utilisateur' }
+    patch:
+      tags: [utilisateurs]
+      summary: Modifier un utilisateur (rôle, statut actif)
+      description: >
+        RLS : chacun peut modifier sa propre ligne ; admin/pasteur peuvent
+        modifier n'importe quelle ligne. La suppression définitive d'un
+        compte ne passe PAS par cet endpoint (RLS l'interdit), voir
+        `DELETE /api/admin/utilisateurs/{id}`.
+      parameters:
+        - $ref: '#/components/parameters/idFilter'
+        - $ref: '#/components/parameters/prefer'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role: { type: string, enum: [fidele, pasteur, admin] }
+                est_actif: { type: boolean }
+      responses:
+        "204": { description: Modifié (sans corps de réponse par défaut) }
+
+  /prieres:
+    get:
+      tags: [prieres]
+      summary: Lister les sessions de prière (live/rediffusion)
+      description: "RLS : `prieres_select_all`, lecture libre pour tout authenticated."
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - $ref: '#/components/parameters/order'
+        - name: statut
+          in: query
+          schema: { type: string }
+          example: eq.en_cours
+        - name: type
+          in: query
+          schema: { type: string }
+          example: eq.live
+      responses:
+        "200":
+          description: Liste des sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Priere' }
+    post:
+      tags: [prieres]
+      summary: Créer une session (démarrer un live ou planifier)
+      description: "RLS : `prieres_insert_pasteur`, admin/pasteur uniquement."
+      parameters:
+        - $ref: '#/components/parameters/prefer'
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Priere' }
+      responses:
+        "201":
+          description: Session créée
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Priere' }
+    patch:
+      tags: [prieres]
+      summary: Modifier une session (ex. terminer un live -> rediffusion)
+      description: "RLS : `prieres_update_pasteur`, admin/pasteur uniquement."
+      parameters:
+        - $ref: '#/components/parameters/idFilter'
+        - $ref: '#/components/parameters/prefer'
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Priere' }
+      responses:
+        "204": { description: Modifié }
+    delete:
+      tags: [prieres]
+      summary: Supprimer une session
+      description: "RLS : `prieres_delete_pasteur`, admin/pasteur uniquement."
+      parameters:
+        - $ref: '#/components/parameters/idFilter'
+      responses:
+        "204": { description: Supprimé }
+
+  /intentions:
+    get:
+      tags: [intentions]
+      summary: Lister les intentions de prière
+      description: >
+        RLS : un fidèle voit les siennes (`auth.uid() = user_id`) ;
+        admin/pasteur voient tout.
+      parameters:
+        - $ref: '#/components/parameters/select'
+        - $ref: '#/components/parameters/order'
+      responses:
+        "200":
+          description: Liste des intentions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Intention' }
+    post:
+      tags: [intentions]
+      summary: Déposer une intention de prière
+      description: "RLS : `intentions_insert_own`, le fidèle dépose pour lui-même."
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Intention' }
+      responses:
+        "201": { description: Intention créée }
+    patch:
+      tags: [intentions]
+      summary: Modifier le statut d'une intention
+      description: >
+        RLS : le propriétaire (`intentions_update_own`) OU admin/pasteur
+        (`intentions_update_pasteur`, ex. passage à `traitee` après réponse).
+      parameters:
+        - $ref: '#/components/parameters/idFilter'
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Intention' }
+      responses:
+        "204": { description: Modifié }
+
+  /reponses_intention:
+    get:
+      tags: [intentions]
+      summary: Lister les réponses aux intentions
+      description: "RLS : `reponses_select_all`, lecture libre."
+      responses:
+        "200":
+          description: Liste des réponses
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ReponseIntention' }
+    post:
+      tags: [intentions]
+      summary: Répondre à une intention
+      description: "RLS : `reponses_insert_pasteur`, admin/pasteur uniquement."
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ReponseIntention' }
+      responses:
+        "201": { description: Réponse créée }
+
+  /participations:
+    get:
+      tags: [prieres]
+      summary: Lister les participations (visionnage des sessions)
+      description: >
+        RLS : chacun voit les siennes (`participations_own`) ; admin/pasteur
+        voient tout (`participations_select_admin`, pour les statistiques).
+      responses:
+        "200":
+          description: Liste des participations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Participation' }
+    post:
+      tags: [prieres]
+      summary: Enregistrer/mettre à jour sa position de visionnage (upsert)
+      description: "RLS : `participations_own`, chacun gère uniquement la sienne."
+      parameters:
+        - name: Prefer
+          in: header
+          schema: { type: string, example: "resolution=merge-duplicates" }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Participation' }
+      responses:
+        "201": { description: Participation enregistrée }
+
+  /notifications:
+    get:
+      tags: [notifications]
+      summary: Lister ses notifications
+      description: "RLS : `notifications_own`, chacun ne voit que les siennes."
+      responses:
+        "200":
+          description: Liste des notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Notification' }
+    patch:
+      tags: [notifications]
+      summary: Marquer une/des notification(s) comme lue(s)
+      parameters:
+        - $ref: '#/components/parameters/idFilter'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                est_lue: { type: boolean }
+                date_lecture: { type: string, format: date-time }
+      responses:
+        "204": { description: Modifié }
+
+  /pensees_du_jour:
+    get:
+      tags: [contenu]
+      summary: Lister les pensées du jour publiées
+      description: "RLS : `pensees_select_all`, lecture libre pour tout authenticated."
+      parameters:
+        - $ref: '#/components/parameters/order'
+      responses:
+        "200":
+          description: Liste des pensées du jour
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PenseeDuJour' }
+    post:
+      tags: [contenu]
+      summary: Publier une pensée du jour
+      description: >
+        RLS : `pensees_insert_admin`, admin/pasteur uniquement. L'image est
+        d'abord uploadée dans le bucket Storage `pensees`, puis son URL
+        publique est passée ici dans `image_url`.
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PenseeDuJour' }
+      responses:
+        "201": { description: Pensée publiée }
+    delete:
+      tags: [contenu]
+      summary: Supprimer une pensée du jour
+      description: "RLS : `pensees_delete_admin`, admin/pasteur uniquement."
+      parameters:
+        - $ref: '#/components/parameters/idFilter'
+      responses:
+        "204": { description: Supprimé }
+
+  /videos_motivation:
+    get:
+      tags: [contenu]
+      summary: Lister les vidéos publiées (cultes, veillées, camps...)
+      description: "RLS : `videos_select_all`, lecture libre pour tout authenticated."
+      parameters:
+        - $ref: '#/components/parameters/order'
+      responses:
+        "200":
+          description: Liste des vidéos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/VideoMotivation' }
+    post:
+      tags: [contenu]
+      summary: Publier une vidéo (lien YouTube ou fichier importé)
+      description: >
+        RLS : `videos_insert_admin`, admin/pasteur uniquement. Pour un fichier
+        importé, il est d'abord uploadé dans le bucket Storage `videos`.
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VideoMotivation' }
+      responses:
+        "201": { description: Vidéo publiée }
+    patch:
+      tags: [contenu]
+      summary: Modifier une vidéo
+      description: "RLS : `videos_update_admin`, admin/pasteur uniquement."
+      parameters:
+        - $ref: '#/components/parameters/idFilter'
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VideoMotivation' }
+      responses:
+        "204": { description: Modifié }
+    delete:
+      tags: [contenu]
+      summary: Supprimer une vidéo
+      description: "RLS : `videos_delete_admin`, admin/pasteur uniquement."
+      parameters:
+        - $ref: '#/components/parameters/idFilter'
+      responses:
+        "204": { description: Supprimé }
+
+  /live_commentaires:
+    get:
+      tags: [live]
+      summary: Lister les commentaires d'une session de prière
+      description: "RLS : `live_commentaires_select_all`, lecture libre. Filtrer avec `priere_id=eq.<uuid>`."
+      parameters:
+        - name: priere_id
+          in: query
+          schema: { type: string }
+          example: eq.123e4567-e89b-12d3-a456-426614174000
+        - $ref: '#/components/parameters/order'
+      responses:
+        "200":
+          description: Liste des commentaires
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LiveCommentaire' }
+    post:
+      tags: [live]
+      summary: Poster un commentaire en direct
+      description: >
+        RLS : `live_commentaires_insert_own`, `auth.uid() = user_id`.
+        `nom_auteur`/`prenom_auteur` sont dénormalisés (capturés côté client
+        au moment de la publication).
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LiveCommentaire' }
+      responses:
+        "201": { description: Commentaire publié (diffusé en Realtime aux abonnés) }
+    delete:
+      tags: [live]
+      summary: Supprimer un commentaire
+      description: "RLS : auteur du commentaire OU admin/pasteur (modération)."
+      parameters:
+        - $ref: '#/components/parameters/idFilter'
+      responses:
+        "204": { description: Supprimé }
+
+  /live_likes:
+    get:
+      tags: [live]
+      summary: Lister les likes d'une session
+      description: "RLS : `live_likes_select_all`, lecture libre. Filtrer avec `priere_id=eq.<uuid>`."
+      parameters:
+        - name: priere_id
+          in: query
+          schema: { type: string }
+          example: eq.123e4567-e89b-12d3-a456-426614174000
+      responses:
+        "200":
+          description: Liste des likes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/LiveLike' }
+    post:
+      tags: [live]
+      summary: Liker une session (toggle "on")
+      description: "RLS : `live_likes_insert_own`. Contrainte unique (priere_id, user_id)."
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LiveLike' }
+      responses:
+        "201": { description: Like ajouté (diffusé en Realtime aux abonnés) }
+    delete:
+      tags: [live]
+      summary: Retirer son like (toggle "off")
+      description: "RLS : `live_likes_delete_own`."
+      parameters:
+        - name: priere_id
+          in: query
+          schema: { type: string }
+        - name: user_id
+          in: query
+          schema: { type: string }
+      responses:
+        "204": { description: Like retiré }
+
+  /api/admin/utilisateurs/{id}:
+    delete:
+      tags: [admin]
+      summary: Supprimer définitivement un compte (auth + profil)
+      description: >
+        Route serveur Next.js (PAS Supabase direct) — utilise la clé
+        `service_role` côté serveur pour contourner RLS et appeler
+        `auth.admin.deleteUser()`. Vérifie elle-même que l'appelant est
+        authentifié et admin/pasteur. Voir
+        [src/app/api/admin/utilisateurs/[id]/route.ts](../src/app/api/admin/utilisateurs/[id]/route.ts).
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Compte supprimé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+        "400":
+          description: Tentative d'auto-suppression
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erreur' }
+        "401":
+          description: Non authentifié
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erreur' }
+        "403":
+          description: Réservé aux administrateurs
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Erreur' }
