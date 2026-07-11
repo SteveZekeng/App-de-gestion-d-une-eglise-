@@ -20,7 +20,7 @@ export default function PolitiqueConfidentialitePage() {
           </p>
           <p className="mt-2">
             Responsable du traitement : Centre International des Vainqueurs<br />
-            Contact : <span className="text-blue-300">audrey.makoumbo@beemobility.io</span>
+            Contact : <span className="text-blue-300">stevezekeng@gmail.com</span>
           </p>
         </div>
 
@@ -105,7 +105,7 @@ export default function PolitiqueConfidentialitePage() {
           </ul>
           <p className="mt-2">
             Pour exercer ces droits, contactez-nous à :{' '}
-            <span className="text-blue-300">audrey.makoumbo@beemobility.io</span>
+            <span className="text-blue-300">stevezekeng@gmail.com</span>
           </p>
         </div>
 
@@ -130,7 +130,7 @@ export default function PolitiqueConfidentialitePage() {
           <h2 className="text-white font-semibold text-lg mb-2">10. Contact</h2>
           <p>
             Pour toute question relative à cette politique de confidentialité :<br />
-            <span className="text-blue-300">audrey.makoumbo@beemobility.io</span>
+            <span className="text-blue-300">stevezekeng@gmail.com</span>
           </p>
         </div>
 
