@@ -45,7 +45,7 @@ export default function LoginPage() {
   return (
     <>
       <h2 className="font-display text-xl font-semibold text-foreground mb-1">Connexion</h2>
-      <p className="text-sm text-blue-700/70 dark:text-blue-200/60 mb-6">Bon retour parmi nous 👋</p>
+      <p className="text-sm text-blue-700/70 dark:text-blue-200/60 mb-6">Bon retour parmi nous </p>
 
       <form onSubmit={handleLogin} className="flex flex-col gap-4">
         <Input
