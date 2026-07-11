@@ -8,7 +8,6 @@ import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
 import { MailCheck } from 'lucide-react'
 import BoutonGoogle from '@/components/ui/BoutonGoogle'
-import BoutonApple from '@/components/ui/BoutonApple'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -144,10 +143,7 @@ export default function RegisterPage() {
         <div className="flex-1 h-px bg-white/10" />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <BoutonGoogle />
-        <BoutonApple />
-      </div>
+      <BoutonGoogle />
 
       <p className="text-center text-sm text-blue-700/70 dark:text-blue-200/60 mt-6">
         Déjà un compte ?{' '}
