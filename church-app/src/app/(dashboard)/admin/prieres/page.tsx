@@ -115,10 +115,10 @@ export default function AdminPrieresPage() {
             <Radio size={16} />
             Démarrer un live
           </Button>
-          <Button onClick={openCreate} variant="secondary" className="gap-1.5">
+          {/* <Button onClick={openCreate} variant="secondary" className="gap-1.5">
             <Plus size={16} />
             Nouvelle session
-          </Button>
+          </Button> */}
         </div>
       </div>
 
